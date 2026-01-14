@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Vrai ou Faux - Sécurisé</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0a194e; /* Bleu foncé de ton premier code */
+            --accent: #227c7d;  /* Sarcelle */
+            --success: #22c55e;
+            --error: #ef4444;
+            --bg: #f4f7f6;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg);
+            margin: 0; padding: 20px;
+            display: flex; justify-content: center; align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px; width: 100%;
+            background: white; padding: 30px;
+            border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .hidden { display: none !important; }
+
+        /* Login */
+        #login-screen { text-align: center; padding: 50px; background: white; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        #login-screen input { padding: 12px; width: 250px; border-radius: 10px; border: 2px solid #ddd; margin-bottom: 20px; font-family: 'Poppins'; }
+
+        h2 { color: var(--primary); text-align: center; margin-bottom: 30px; }
+
+        /* Style des questions */
+        .question-row {
+            background: #fafafa;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            border-left: 5px solid var(--primary);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            transition: 0.3s;
+        }
+
+        .question-text { font-weight: 500; font-size: 1.05em; color: #333; }
+
+        .options-group { display: flex; gap: 10px; }
+
+        .btn-opt {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.2s;
+            font-family: 'Poppins';
+        }
+
+        .btn-opt:hover { border-color: var(--primary); }
+
+        /* États sélectionnés */
+        .btn-opt.selected-true { background-color: var(--primary); color: white; border-color: var(--primary); }
+        .btn-opt.selected-false { background-color: var(--primary); color: white; border-color: var(--primary); }
+
+        /* Résultats */
+        .correct { border-left-color: var(--success) !important; background-color: #f0fdf4 !important; }
+        .incorrect { border-left-color: var(--error) !important; background-color: #fef2f2 !important; }
+        
+        .feedback { font-weight: bold; font-size: 0.9em; display: none; margin-top: 5px; }
+        .correct .feedback { display: block; color: var(--success); }
+        .incorrect .feedback { display: block; color: var(--error); }
+
+        .btn-main {
+            display: block; width: 260px; margin: 40px auto;
+            padding: 15px; background: var(--primary); color: white;
+            border: none; border-radius: 30px; cursor: pointer; font-weight: 600; font-size: 1.1em;
+            box-shadow: 0 4px 15px rgba(10, 25, 78, 0.2);
+        }
+
+        .btn-main:hover { opacity: 0.9; transform: translateY(-2px); transition: 0.2s; }
+
+        #score-display {
+            text-align: center; font-size: 1.5em; font-weight: 700; color: var(--primary);
+            margin-top: 20px; padding: 20px; border-top: 2px dashed #eee;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="login-screen">
+        <h2>Accès au Quiz</h2>
+        <input type="password" id="password-input" placeholder="Mot de passe...">
+        <br>
+        <button class="btn-main" style="margin-top:0" onclick="checkPassword()">Lancer l'exercice</button>
+        <p id="error-msg" style="color:red; display:none; margin-top:10px;">Mot de passe incorrect.</p>
+    </div>
+
+    <div id="quiz-container" class="container hidden">
+        <h2>Vrai ou Faux ?</h2>
+        <div id="questions-list"></div>
+        <button class="btn-main" id="btn-verify" onclick="verifyAnswers()">Vérifier mes réponses</button>
+        <div id="score-display" class="hidden"></div>
+    </div>
+
+<script>
+    const questions = [
+        { q: "La Terre tourne autour du Soleil.", a: true },
+        { q: "Les humains peuvent respirer sous l’eau sans équipement.", a: false },
+        { q: "L’eau bout à 100 °C à pression atmosphérique normale.", a: true },
+        { q: "Les pingouins vivent naturellement au pôle Nord.", a: false },
+        { q: "Le cerveau humain consomme environ 20 % de l’énergie du corps.", a: true },
+        { q: "La Tour Eiffel est plus haute que le mont Blanc.", a: false },
+        { q: "Les chats sont des reptiles.", a: false },
+        { q: "Les abeilles jouent un rôle essentiel dans la pollinisation.", a: true },
+        { q: "Le Soleil est une planète.", a: false },
+        { q: "L’ADN contient les instructions génétiques des êtres vivants.", a: true }
+    ];
+
+    let userAnswers = new Array(questions.length).fill(null);
+
+    function checkPassword() {
+        if(document.getElementById('password-input').value === "Atcyb.2026.1") {
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('quiz-container').classList.remove('hidden');
+            renderQuestions();
+        } else {
+            document.getElementById('error-msg').style.display = "block";
+        }
+    }
+
+    function renderQuestions() {
+        const container = document.getElementById('questions-list');
+        questions.forEach((item, index) => {
+            const div = document.createElement('div');
+            div.className = 'question-row';
+            div.id = `q-row-${index}`;
+            div.innerHTML = `
+                <div class="question-text">${index + 1}. ${item.q}</div>
+                <div class="options-group">
+                    <button class="btn-opt" id="btn-t-${index}" onclick="selectAnswer(${index}, true)">Vrai</button>
+                    <button class="btn-opt" id="btn-f-${index}" onclick="selectAnswer(${index}, false)">Faux</button>
+                </div>
+                <div class="feedback" id="fb-${index}"></div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    function selectAnswer(index, val) {
+        userAnswers[index] = val;
+        // Reset styles
+        document.getElementById(`btn-t-${index}`).classList.remove('selected-true');
+        document.getElementById(`btn-f-${index}`).classList.remove('selected-false');
+        
+        // Appliquer style sélectionné
+        if(val) {
+            document.getElementById(`btn-t-${index}`).classList.add('selected-true');
+        } else {
+            document.getElementById(`btn-f-${index}`).classList.add('selected-false');
+        }
+    }
+
+    function verifyAnswers() {
+        let score = 0;
+        let allAnswered = true;
+
+        userAnswers.forEach((ans, i) => { if(ans === null) allAnswered = false; });
+
+        if(!allAnswered) {
+            alert("Veuillez répondre à toutes les questions avant de vérifier.");
+            return;
+        }
+
+        questions.forEach((item, i) => {
+            const row = document.getElementById(`q-row-${i}`);
+            const fb = document.getElementById(`fb-${i}`);
+            
+            if(userAnswers[i] === item.a) {
+                score++;
+                row.classList.add('correct');
+                fb.innerText = "✓ Bonne réponse !";
+            } else {
+                row.classList.add('incorrect');
+                fb.innerText = `✗ Mauvaise réponse. La réponse était : ${item.a ? 'Vrai' : 'Faux'}`;
+            }
+        });
+
+        // Affichage du score final
+        const scoreDiv = document.getElementById('score-display');
+        scoreDiv.classList.remove('hidden');
+        scoreDiv.innerHTML = `Résultat : ${score} / ${questions.length}`;
+        
+        document.getElementById('btn-verify').innerText = "Recommencer";
+        document.getElementById('btn-verify').onclick = () => location.reload();
+        
+        // Désactiver les boutons après vérification
+        document.querySelectorAll('.btn-opt').forEach(b => b.style.pointerEvents = "none");
+    }
+</script>
+
+</body>
+</html>
